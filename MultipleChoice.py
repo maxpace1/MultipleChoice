@@ -1,26 +1,61 @@
 #Have a mc question, n answers, find the best one.
-from bs4 import BeautifulSoup
+from googlesearch import search
 import requests
 
-question = "What restaurant franchise advises you to Eat Fresh?"
-answers = ["Subway", "Taco Bell", "KFC", "McDonald's"]
+def make_guess(question, answers):
+    results = dict.fromkeys(answers, 0)
+    for hit, i in zip(search(question, tld="com", num=10, stop=10), range(10, 1, -1)):
+        r = requests.get(hit)
+        question_map = dict.fromkeys(answers, 0)
+        total = 0
+        for answer in answers:
+            count = r.text.upper().count(answer.upper())
+            question_map[answer] += count
+            total += count
+        if total != 0:
+            for k in question_map:
+                results[k] += question_map[k]/total * i
 
-question = "Who was the president during World War I?"
-answers = ["Woodrow Wilson", "Franklin Delano Roosevelt", "George Washington", "Joe Biden"]
+    best = max(results, key=results.get)
+    conf = max(results.values())/sum(results.values())
+    return (best,conf)
 
-def search(q):
-    params={"q":q,"tbs":"li:1"}
-    header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15'}
-    #r = requests.get("http://www.google.com/search?", params=params, headers=header)
-    print("https://www.google.com/search?q="+q)
-    r = requests.get("http://www.google.com/search?q="+q, headers=header)
+questions = [
+   (
+    "What restaurant has the motto, 'Eat Fresh?'",
+   ["Subway", "Taco Bell", "KFC", "McDonald's"]
+   ),
+   (
+    "Who was the president during World War I?",
+   ["Joe Biden", "Woodrow Wilson", "Abraham Lincoln", "Franklin Roosevelt"]
+   ),
+   (
+    "Which country produces the most coffee in the world?",
+   ["Brazil", "United States", "Colombia", "Italy"]
+   ),
+   (
+    "What is the capital of Spain?",
+   ["Barcelona", "Madrid", "Granada", "Valencia"]
+   ),
+   (
+    "What is Chandler's last name in the sitcom Friends?",
+   ["Bing", "Geller", "Halpert", "Tribbiani"]
+   ),
+   (
+    "What is the third sign of the zodiac?",
+    ["Gemini", "Cancer", "Aries", "Capricorn"]
+   ),
+   (
+    "In what year was the first-ever Wimbledon Championship held?",
+    ["1877", "1921", "2022", "2012"]
+   ),
+   (
+    "What was the first state?",
+    ["New York", "Connecticut", "Delaware", "Virginia"]  
+   )
+]
 
-    soup = BeautifulSoup(r.text, 'html.parser')
-    extract = soup.find(id='result-stats')
-
-    print(r.text)
-    return int(extract.text[6:extract.text.find(' result')].replace(',',''))
-
-results = [search(question+" "+answer) for answer in answers]
-print(results)
-print(answers[results.index(max(results))]) 
+for q in questions:
+    print(q[0])
+    guess, conf = make_guess(q[0],q[1])
+    print(f"Best guess is {guess} with confidence {int(conf*100)}%")
